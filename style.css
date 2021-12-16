@@ -2,7 +2,7 @@ html, body {
     margin: 0 !important;
     padding: 0 !important;
     overflow: hidden;
-    background-color: black !important;
+    background-color: #F2F2EB;
     font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -11,7 +11,7 @@ html, body {
   top: 10px;
   left: 10px;
   z-index: 1000;
-  color: red;
-  font-weight: bolder;
-  font-size: 2em;
+  color: #F2921D;
+  font-weight: 500;
+  font-size: 1.5em;
 }

@@ -10,12 +10,21 @@ let zero = window.innerHeight / 2;
 let x = window.innerWidth / 2;
 let y = window.innerHeight / 2;
 
+//SOUNDS
+let theme = new Audio('src/sounds/theme.wav');
+theme.loop = true;
+let microphoneStarted = false;
+
 let xOnUp = 0;
 let xSinceUp = 0;
 
 let up = false;
-let soundStarted = false;
 let first = true;
+
+// BARS
+const bars = [{ x: window.innerWidth, y: 0, gapY: 300 }];
+const gapHeight = 200;
+let shouldAddBar = true;
 
 // EVENEMENTS ESPACE
 document.onkeydown = function (event) {
@@ -43,41 +52,52 @@ const points = [{ x: 250, y: 250 }];
 
 // LINE(S)
 
+// TIMER
+var startTime = Date.now();
+let score = 0;
+var interval = setInterval(function () {
+	var elapsedTime = Date.now() - startTime;
+	score = (elapsedTime / 100).toFixed(0);
+	document.getElementById("timer").innerHTML = score + '/' + localStorage.highestScore;
+}, 100);
 
+function generateBars(ctx) {
+	for (let i = 0; i < bars.length; i++) {
+		// afficher la partie superieure de la bare
+		ctx.fillStyle = '#F2790F'
+		ctx.fillRect(bars[i].x, 0, 3, bars[i].gapY);
+		// afficher la partie inferieure de la bare
+		ctx.fillStyle = '#F2790F'
+		const bottomBar = canvas.height - gapHeight - bars[i].gapY;
+		ctx.fillRect(bars[i].x, bars[i].gapY + gapHeight, 3, bottomBar);
+		// deplacer la bare
+		bars[i].x -= 20
+	}
+
+	// si la bare en avant depasse le debut du canvas on le supprime
+	if (bars[0].x <= 0) {
+		shouldAddBar = true;
+		bars.shift();
+	}
+	
+	// si la bare en avant depasse le tiere du canvas on genere une nouvelle bare
+	if (bars[0].x <= (canvas.width / 3) && shouldAddBar) {
+		bars.push({ x: window.innerWidth, y: 0, gapY: Math.floor(Math.random() * (canvas.height - gapHeight)) });
+		shouldAddBar = false;
+	}
+
+}
 
 // let ballHeight = 
 let lastPos = { x: 0, y: 0 }
 function draw() {
+	
+	// SON THEME
+	// theme.play();
+	
+	
 	//UPDATE TOUT LES 100MS
 	setInterval(() => {
-		// PAREMTRES LIGNES
-		ctx.strokeStyle = 'white';
-		ctx.lineWidth = 1;
-		// 
-		// LINE 1 TOP
-		ctx.beginPath();
-		ctx.moveTo(window.innerWidth / 1.5, 0);
-		ctx.lineTo(window.innerWidth / 1.5, 400);
-		ctx.stroke();
-
-		// LINE 1 BOTTOM
-		ctx.beginPath();
-		ctx.moveTo(window.innerWidth / 1.5, 500);
-		ctx.lineTo(window.innerWidth / 1.5, 1000);
-		ctx.stroke();
-
-		// LINE 2 TOP
-		ctx.beginPath();
-		ctx.moveTo(window.innerWidth / 1.2, 0);
-		ctx.lineTo(window.innerWidth / 1.2, 300);
-		ctx.stroke();
-
-		// LINE 2 BOTTOM
-		ctx.beginPath();
-		ctx.moveTo(window.innerWidth / 1.2, 450);
-		ctx.lineTo(window.innerWidth / 1.2, 1000);
-		ctx.stroke();
-		ctx.fillStyle = '#000'
 		// ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
 		ctx.clearRect(0, 0, canvas.width, canvas.height)
 
@@ -87,11 +107,13 @@ function draw() {
 		// 	y -= (1 / 50) * xSinceUp * xSinceUp;
 		// 	console.log("ACTIVE");
 		// } else if (y < zero)
-		// 	y += 10;
+		// 	y += 20;
 		//console.log("INACTIVE");
 
 		//creer un nouveau point au centre
 
+		generateBars(ctx);
+		
 		// decaler touts les points
 		for (const point of points) {
 			point.x -= 20
@@ -101,7 +123,7 @@ function draw() {
 		// points.unshift({ x: 250, y: y });
 
 
-		points.push({ x: zero, y: y })
+		points.unshift({ x: zero, y: y })
 
 		// for (const point of points) {
 		// 	ctx.beginPath();
@@ -112,12 +134,10 @@ function draw() {
 
 		// dessiner les points
 
-
-
 		for (let i = 0; i < points.length - 1; i++) {
 			ctx.beginPath();
-			ctx.fillStyle = "blue";
-			ctx.arc(points[i].x, points[i].y, 0.5, 0, 2 * Math.PI)
+			ctx.fillStyle = '#F21326';
+			ctx.arc(points[i].x, points[i].y, 3, 0, 2 * Math.PI)
 			ctx.fill()
 			ctx.closePath();
 
@@ -125,7 +145,7 @@ function draw() {
 				ctx.beginPath();
 				ctx.moveTo(points[i].x, points[i].y);
 				ctx.lineTo(points[i + 1].x, points[i + 1].y);
-				ctx.strokeStyle = 'blue';
+				ctx.strokeStyle = '#F21326';
 				ctx.stroke();
 				ctx.closePath();
 			}
@@ -135,54 +155,17 @@ function draw() {
 		lastPos = { x: x, y: y };
 		first = false;
 
-
-
-
-		// incrementer x
-		if (soundStarted) {
-			x += 10
-
+		const head = points[0];
+		// est ce que le head est entre la largeur de la bare
+		const isCrossed = head.x >= bars[0].x && (head.x <= bars[0].x + 20);
+		// console.log(head.x);
+		if (isCrossed && !(head.y > bars[0].gapY && head.y < (bars[0].gapY + gapHeight))) {
+			localStorage.highestScore = score;
+			window.location.href = 'score.html';
 		}
-
 		//	console.log("Position x " + x + " Position y " + y);
 	}, 100)
 }
-
-// // GET MICROPHONE
-// async function getMicroVolume() {
-// 	const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-// 	audioContext = new AudioContext();
-// 	analyser = audioContext.createAnalyser();
-// 	microphone = audioContext.createMediaStreamSource(stream);
-// // 	javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
-
-// // 	analyser.smoothingTimeConstant = 0.8;
-// // 	analyser.fftSize = 1024;
-
-// // 	microphone.connect(analyser);
-// // 	soundStarted = true;
-// // 	analyser.connect(javascriptNode);
-// // 	javascriptNode.connect(audioContext.destination);
-// // 	console.log(analyser);
-// // 	javascriptNode.onaudioprocess = function () {
-// // 		var array = new Uint8Array(analyser.frequencyBinCount);
-// // 		analyser.getByteFrequencyData(array);
-// // 		var values = 0;
-// // 	//	console.log(analyser);
-
-// // 		var length = array.length;
-// // 		for (var i = 0; i < length; i++) {
-// // 			values += (array[i]);
-// // 		}
-
-// // 		var average = values / length;
-// // 		console.log(average);
-
-// // 		y = window.innerHeight - window.innerHeight / 50 * average;
-// // 		//document.querySelector('#volume').innerHTML = Math.round(average);
-// // 		// colorPids(average);
-// // 	}
-// // }
 
 async function getMicroVolume(result) {
 	const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true })
@@ -208,163 +191,12 @@ async function getMicroVolume(result) {
 		}
 
 		var average = values / length;
+		console.log(average)
 
 		document.querySelector('#volume').innerHTML = Math.round(average);
-		y = window.innerHeight - average * 4;
+		y = window.innerHeight - average * 70;
 		// colorPids(average);
-		console.log(average);
+		// console.log(average);
 	}
 }
-
-// TIMER
-var startTime = Date.now();
-
-var interval = setInterval(function () {
-	var elapsedTime = Date.now() - startTime;
-	document.getElementById("timer").innerHTML = (elapsedTime / 100).toFixed(0);
-}, 100);
-
-
-
-// // COLLISION DETECTOR 1
-// function arcsCollision(first, second) {
-// 	const dx = first.x - second.x;
-// 	const dy = first.y - second.y;
-// 	const distance = Math.sqrt(dx ** 2 + dy ** 2);
-// 	return (
-// 		distance
-// 		<=
-// 		(first.radius + second.radius + 0.1)
-// 	);
-// }
-
-// function arcAndRectCollision(arc, rect) {
-
-// 	return (
-// 		arc.x - arc.radius < rect.x ||
-// 		arc.x + arc.radius > rect.width ||
-// 		arc.y - arc.radius < rect.y ||
-// 		arc.y + arc.radius > rect.height
-// 	);
-// }
-
-
-// // COLLISION DETECTOR 2
-// var canvas = document.getElementById('canvas');
-// var ctx = canvas.getContext('2d');
-
-// var cWidth = canvas.width = window.innerWidth;
-// var cHeight = canvas.height = window.innerHeight;
-
-// var bodies = [];
-// var keyState = [];
-// var jumping = true;
-
-// var player = {
-//   x: cWidth / 2,
-//   y: cHeight / 2,
-//   vx: 0,
-//   vy: 0,
-//   radius: 20,
-//   color: "white",
-//   lastPosition: {
-//     x: 0,
-//     y: 0
-//   }
-// };
-
-// for (var i = 0, x = 20; i < x; i++) {
-//   bodies.push({
-//     x: Math.random() * cWidth,
-//     y: Math.random() * cHeight,
-//     w: 30,
-//     h: 30,
-//     color: "red"  
-//   });
-// }
-
-// function draw() {
-//   ctx.clearRect(0,0,cWidth,cHeight);
-
-//   for(var i = 0, x = bodies.length; i < x; i++){
-//     var body = bodies[i];
-//     ctx.fillStyle = body.color;
-//     ctx.fillRect(body.x, body.y, body.w, body.h);
-//   }
-
-//   ctx.fillStyle = player.color;
-//   ctx.beginPath();
-//   ctx.arc(player.x, player.y, player.radius, 0, 2*Math.PI);
-//   ctx.fill();
-
-//   ctx.fillStyle = 'black';
-//   ctx.fillRect(player.x,player.y,1,1);
-// }
-
-// function update() {
-//   player.lastPosition.x = player.x;
-//   player.lastPosition.y = player.y;
-
-//   if (keyState[37]){
-//     player.vx = 1;
-//     player.x -= player.vx;
-//   }
-
-//   if (keyState[39]){
-//     player.vx = 1;
-//     player.x += player.vx;
-//   }
-
-//   if (keyState[38]){
-//     player.vy = 1;
-//     player.y -= player.vy;
-//   }
-
-//   if (keyState[40]){
-//     player.vy = 1;
-//     player.y += player.vy;
-//   }
-
-//   if(notColliding(player)){
-//     player.color = "blue";
-//   } else {
-//     player.color = "white";
-//   }
-// }
-
-// function tick() {
-//   update();
-//   draw();
-//   requestAnimationFrame(tick);
-// }
-
-// function notColliding(block1) {
-//   for (var i = 0, x = bodies.length; i < x; i++) {
-//     if (collision(block1, bodies[i])){
-//       return true;
-//     } 
-//   }
-
-//   return false;
-// }
-
-// function collision(block1, block2) {
-//   return !(block1 === block2 ||
-//           block1.x + block1.radius < block2.x ||
-//           block1.y + block1.radius < block2.y ||
-//           block1.x - block1.radius > block2.x + block2.w ||
-//           block1.y - block1.radius > block2.y + block2.h);
-// }
-
-// tick();
-
-// window.addEventListener('keydown', function(e) {
-//   keyState[e.keyCode] = true;
-//   e.preventDefault();
-// });
-
-// window.addEventListener('keyup', function(e) {
-//   keyState[e.keyCode] = false;
-// });
-
 draw();
